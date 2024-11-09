@@ -1,9 +1,13 @@
 # aws_translator_app/views.py
 
+from django.utils.decorators import method_decorator
+from django_ratelimit.decorators import ratelimit
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .constants import LANGUAGES, SPECIALITIES, STYLES, COMPLEXITY_LEVELS, AVAILABLE_MODELS
+from rest_framework.permissions import AllowAny
+from .permissions import IsOwnerOrReadOnly
 from .serializers import (
     TranslateRequestSerializer,
     TranslateResponseSerializer,
@@ -15,34 +19,54 @@ from .services.api.openai_service import OpenAIService
 from .services.document_service import DocumentService
 from .services.language.readability_service import ReadabilityService
 from .services.language.bleu_score_service import BleuScoreService
+import os  # Make sure to import os if not already imported
+from .constants import LANGUAGES, SPECIALITIES, STYLES, COMPLEXITY_LEVELS, AVAILABLE_MODELS
 
 
 class LanguagesView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
-        return Response(LANGUAGES)
+        languages_list = [{'name': name, 'code': code} for name, code in LANGUAGES.items()]
+        return Response(languages_list)
 
 
 class SpecialitiesView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
-        return Response(SPECIALITIES)
+        specialities_list = [{'name': name, 'value': value} for name, value in SPECIALITIES.items()]
+        return Response(specialities_list)
 
 
 class StylesView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
-        return Response(STYLES)
+        styles_list = [{'name': name, 'value': value} for name, value in STYLES.items()]
+        return Response(styles_list)
 
 
 class ComplexityLevelsView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
-        return Response(COMPLEXITY_LEVELS)
+        complexity_levels_list = [{'name': name, 'value': value} for name, value in COMPLEXITY_LEVELS.items()]
+        return Response(complexity_levels_list)
 
 
 class ModelsView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
-        return Response(AVAILABLE_MODELS)
+        models_list = [{'name': model} for model in AVAILABLE_MODELS]
+        return Response(models_list)
 
 
 class TranslateView(APIView):
+    permission_classes = [AllowAny]
+
+    @method_decorator(ratelimit(key='ip', rate='10/m', block=True))
     def post(self, request):
         serializer = TranslateRequestSerializer(data=request.data)
         if serializer.is_valid():
@@ -110,6 +134,9 @@ class TranslateView(APIView):
 
 
 class ImportDocumentView(APIView):
+    permission_classes = [AllowAny]
+
+    @method_decorator(ratelimit(key='ip', rate='10/m', block=True))
     def post(self, request):
         serializer = ImportDocumentSerializer(data=request.data)
         if serializer.is_valid():
@@ -124,6 +151,9 @@ class ImportDocumentView(APIView):
 
 
 class ExportDocumentView(APIView):
+    permission_classes = [AllowAny]
+
+    @method_decorator(ratelimit(key='ip', rate='10/m', block=True))
     def post(self, request):
         serializer = ExportDocumentSerializer(data=request.data)
         if serializer.is_valid():
@@ -148,4 +178,28 @@ class ExportDocumentView(APIView):
                     return response
             except Exception as e:
                 return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TranslationDetailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get_object(self, pk):
+        # Assume we have a Translation model
+        try:
+            return Translation.objects.get(pk=pk)
+        except Translation.DoesNotExist:
+            raise Http404
+
+    def get(self, request, pk, format=None):
+        translation = self.get_object(pk)
+        serializer = TranslationSerializer(translation)
+        return Response(serializer.data)
+
+    def put(self, request, pk, format=None):
+        translation = self.get_object(pk)
+        serializer = TranslationSerializer(translation, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

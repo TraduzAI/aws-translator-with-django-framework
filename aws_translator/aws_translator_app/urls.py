@@ -11,16 +11,16 @@ from .views import (
     ModelsView,
     TranslateView,
     ImportDocumentView,
-    ExportDocumentView
+    ExportDocumentView,
 )
 
 urlpatterns = [
     path('languages/', LanguagesView.as_view(), name='languages'),
     path('specialities/', SpecialitiesView.as_view(), name='specialities'),
     path('styles/', StylesView.as_view(), name='styles'),
-    path('complexity-levels/', ComplexityLevelsView.as_view(), name='complexity-levels'),
+    path('complexity-levels/', ComplexityLevelsView.as_view(), name='complexity_levels'),
     path('models/', ModelsView.as_view(), name='models'),
     path('translate/', TranslateView.as_view(), name='translate'),
-    path('import-document/', ImportDocumentView.as_view(), name='import-document'),
-    path('export-document/', ExportDocumentView.as_view(), name='export-document'),
+    path('import-document/', ImportDocumentView.as_view(), name='import_document'),
+    path('export-document/', ExportDocumentView.as_view(), name='export_document'),
 ]

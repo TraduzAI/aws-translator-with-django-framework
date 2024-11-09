@@ -35,11 +35,22 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework',
-    'aws_translator_app'
+    'rest_framework.authtoken',
+    'corsheaders',  # App para CORS
+    # 'ratelimit',  # App para Rate Limiting
+    'rest_framework',  # Adicionado o Django REST Framework
+    'aws_translator_app',  # Sua aplicação principal
+]
+# aws_translator_app/settings.py
+
+CORS_ALLOW_ALL_ORIGINS = True  # Permite todas as origens (útil para desenvolvimento)
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # Adicione esta linha
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -128,3 +139,30 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_REGION = os.getenv('AWS_REGION')
+
+REST_FRAMEWORK = {
+    'EXCEPTION_HANDLER': 'aws_translator_app.exceptions.custom_exception_handler',
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',  # Use token-based authentication
+    ],
+    # 'DEFAULT_PERMISSION_CLASSES': [
+    #     'rest_framework.permissions.IsAuthenticated',
+    # ],
+}
+
+# Configuração de Caches
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    },
+    # Defina o cache para ratelimit se necessário
+    'cache-for-ratelimiting': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
+
+# Configuração do ratelimit
+RATELIMIT_CACHE = 'default'  # Ou 'cache-for-ratelimiting' se você definiu
